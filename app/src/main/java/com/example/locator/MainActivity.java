@@ -1,5 +1,7 @@
 package com.example.locator;
 
+import static com.google.android.material.internal.ContextUtils.getActivity;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -18,11 +20,7 @@ import android.widget.TextView;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
@@ -30,7 +28,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     private LocationManager locationManager;
     private final int REQUEST_FINE_LOCATION = 1234;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +38,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             try {
                 int i = 0;
                 while (true) {
-                    Log.d("Locatorloop", "Location request: " + i);
+                    Log.d("Locator-Loop", "Location request: " + i);
                     request_location();
                     i++;
                     try {
@@ -60,26 +57,37 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
 
     private void request_location() {
-        final TextView textview = (TextView) findViewById(R.id.msg);
+        if (ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION},
+                    REQUEST_FINE_LOCATION
+            );
+        }
 
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)
-            ActivityCompat.requestPermissions(this, new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_FINE_LOCATION);
+        final TextView textview_coordinates = (TextView) findViewById(R.id.msg);
+        final TextView textview_server_connectivity = (TextView) findViewById(R.id.server_connectivity);
 
         FusedLocationProviderClient fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
-            String coordinates = "";
+            String coordinates;
 
             if (location != null) {
-                coordinates += String.format(location.getLatitude() + ";" + location.getLongitude());
+                coordinates = String.format(location.getLatitude() + ";" + location.getLongitude());
             } else {
-                coordinates += "Location fetch error";
+                coordinates = "N/A;N/A";
             }
 
-            textview.setText(coordinates);
-            /**
+            textview_coordinates.setText(coordinates);
+            /*
              * send coordinates to server
-             **/
+             */
             this.run_client_socket_thread(coordinates);
+
+            this.runOnUiThread(() -> textview_server_connectivity.setText(R.string.server_connectivity_good));
 
         });
     }
@@ -87,26 +95,28 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     private void  run_client_socket_thread(String coordinates) {
         new Thread(new Runnable(){
-            String coordinates;
+            private String coordinates;
+            private String host;
+            private int port;
+
             public Runnable init(String coordinates) {
                 this.coordinates = coordinates;
+                this.host = "192.168.1.61";
+                this.port = 9999;
                 return this;
             }
             public void run(){
+                final TextView textview_server_connectivity = (TextView) findViewById(R.id.server_connectivity);
                 try {
-                    Socket s = new Socket("192.168.1.61", 9999);
-
+                    Socket s = new Socket(this.host, this.port);
                     PrintWriter out = new PrintWriter(s.getOutputStream(), true);
-                    //BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-
-                    //String resp = in.readLine();
-                    //Log.d("Locator-server", resp);
                     out.println(this.coordinates);
-
-                    //in.close();
+                    Log.d("Locator-Transmit", this.coordinates);
+                    runOnUiThread(() -> textview_server_connectivity.setText(R.string.server_connectivity_good));
                     out.close();
                     s.close();
                 } catch (IOException e) {
+                    runOnUiThread(() -> textview_server_connectivity.setText(R.string.server_connectivity_none));
                     e.printStackTrace();
                 }
             }
@@ -116,13 +126,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     @Override public void onLocationChanged(Location location) {
         String coordinates = String.format(location.getLatitude() + ";" + location.getLongitude());
-        final TextView textview = (TextView) findViewById(R.id.msg);
+        final TextView textview_coordinates = (TextView) findViewById(R.id.msg);
 
-        textview.setText(coordinates);
-
+        textview_coordinates.setText(coordinates);
         this.run_client_socket_thread(coordinates);
 
-        Log.d("LocatorCoordinates", coordinates);
+        Log.d("Locator-Location-Changed", coordinates);
         locationManager.removeUpdates(this);
     }
 

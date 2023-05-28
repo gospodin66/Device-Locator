@@ -1,0 +1,2 @@
+cp -r Locator/* /home/cheki/projects/Device-Locator/ && \
+chown -R cheki:cheki /home/cheki/projects/Device-Locator/

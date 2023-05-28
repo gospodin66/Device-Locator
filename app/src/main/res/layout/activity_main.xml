@@ -5,16 +5,29 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:singleLine="true"
+    android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/msg"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
 
-  </androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/server_connectivity"
+            android:layout_width="177dp"
+            android:layout_height="24dp"
+            android:text="@string/server_connectivity_good" />
+
+        <TextView
+            android:id="@+id/msg"
+            android:layout_width="178dp"
+            android:layout_height="29dp"
+            android:text="@string/coordinates_n_a_n_a" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
