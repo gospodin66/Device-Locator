@@ -42,7 +42,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                     request_location();
                     i++;
                     try {
-                        Thread.sleep(60000);
+                        Thread.sleep(20000);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
@@ -81,14 +81,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                 coordinates = "N/A;N/A";
             }
 
-            textview_coordinates.setText(coordinates);
-            /*
-             * send coordinates to server
-             */
             this.run_client_socket_thread(coordinates);
-
+            this.runOnUiThread(() -> textview_coordinates.setText(coordinates));
             this.runOnUiThread(() -> textview_server_connectivity.setText(R.string.server_connectivity_good));
-
         });
     }
 
@@ -98,6 +93,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             private String coordinates;
             private String host;
             private int port;
+            private final TextView textview_server_connectivity = (TextView) findViewById(R.id.server_connectivity);
 
             public Runnable init(String coordinates) {
                 this.coordinates = coordinates;
@@ -106,17 +102,16 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                 return this;
             }
             public void run(){
-                final TextView textview_server_connectivity = (TextView) findViewById(R.id.server_connectivity);
                 try {
                     Socket s = new Socket(this.host, this.port);
                     PrintWriter out = new PrintWriter(s.getOutputStream(), true);
                     out.println(this.coordinates);
                     Log.d("Locator-Transmit", this.coordinates);
-                    runOnUiThread(() -> textview_server_connectivity.setText(R.string.server_connectivity_good));
+                    runOnUiThread(() -> this.textview_server_connectivity.setText(R.string.server_connectivity_good));
                     out.close();
                     s.close();
                 } catch (IOException e) {
-                    runOnUiThread(() -> textview_server_connectivity.setText(R.string.server_connectivity_none));
+                    runOnUiThread(() -> this.textview_server_connectivity.setText(R.string.server_connectivity_none));
                     e.printStackTrace();
                 }
             }
@@ -128,7 +123,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         String coordinates = String.format(location.getLatitude() + ";" + location.getLongitude());
         final TextView textview_coordinates = (TextView) findViewById(R.id.msg);
 
-        textview_coordinates.setText(coordinates);
+        this.runOnUiThread(() -> textview_coordinates.setText(coordinates));
+
         this.run_client_socket_thread(coordinates);
 
         Log.d("Locator-Location-Changed", coordinates);
